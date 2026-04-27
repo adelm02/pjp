@@ -1,0 +1,8 @@
+// Intentionally broken: should raise multiple errors //
+int a;
+int a;            // duplicate declaration //
+b = 5;            // 'b' not declared //
+string s;
+s = 1;            // type mismatch: int -> string //
+if (1) write s;   // condition is not bool //
+write a + "x";    // numeric op on string //

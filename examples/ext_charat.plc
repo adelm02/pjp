@@ -1,0 +1,8 @@
+// EXTENSION: charAt — postfix string indexing s[i] //
+string b;
+string a;
+b = "AHOJ";
+a = b[1];
+write b[0];
+write b[1];
+write a;

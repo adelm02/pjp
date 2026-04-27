@@ -1,0 +1,5 @@
+// Multiple syntax errors in one file //
+int a
+a = 5;
+if a > 3) write a;
+while () write a;

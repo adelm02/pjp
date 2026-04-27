@@ -1,0 +1,10 @@
+// Hello world + arithmetic with implicit int -> float conversion //
+int a;
+float b;
+string s;
+
+a = 5;
+b = a + 5.5;
+s = "result = " . "ok";
+
+write s, a, b;

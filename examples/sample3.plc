@@ -1,0 +1,14 @@
+// Boolean logic, equality, string compare, nested expressions //
+bool ok;
+int x;
+int y;
+string a;
+string b;
+
+x = 3;
+y = 4;
+a = "foo";
+b = "foo";
+
+ok = (x < y) && (a == b) || !(x == y);
+write ok;

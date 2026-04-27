@@ -1,0 +1,4 @@
+FILE f;
+fopen f "soubor.txt";
+fwrite f, "abc", 1+2;
+write "hotovo";

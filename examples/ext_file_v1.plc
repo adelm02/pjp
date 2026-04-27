@@ -1,0 +1,11 @@
+// EXTENSION: FILE / fopen / fappend — VARIANT 1 (Behalek):
+//   fopen f, "path";
+//   fappend f, v1, v2, ...;
+//
+// Generated instruction is `fappend N` where N = file + values count.
+// Run the file through the VM with --run to actually create the file.
+FILE f;
+fopen f, "/tmp/plc_v1.txt";
+fappend f, 1, "A", 2;
+fappend f, "\n", "second line", "\n";
+write "wrote /tmp/plc_v1.txt";

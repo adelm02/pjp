@@ -1,0 +1,9 @@
+// EXTENSION: ternary operator  cond ? a : b //
+int x;
+int y;
+string label;
+x = 7;
+y = 3;
+label = (x > y) ? "x is bigger" : "y is bigger";
+write label;
+write (x > y) ? x : y;

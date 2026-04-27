@@ -1,0 +1,5 @@
+// Demonstrates `read` from stdin //
+int x;
+int y;
+read x, y;
+write "sum is", x + y;

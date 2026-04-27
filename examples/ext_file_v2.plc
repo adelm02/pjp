@@ -1,0 +1,10 @@
+// EXTENSION: FILE / fopen / fappend — VARIANT 2 (Vašínek):
+//   fopen f, "path";
+//   f << v1 << v2 << v3;
+//
+// Generated instructions: load f; push v1; fappend; push v2; fappend; ...; pop
+FILE f;
+fopen f, "/tmp/plc_v2.txt";
+f << 1 << 1+2 << "x";
+f << "\n" << "next";
+write "wrote /tmp/plc_v2.txt";

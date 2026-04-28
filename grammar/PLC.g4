@@ -65,6 +65,7 @@ expression
     // EXTENSION: charAt — postfix string indexing  s[i]
     //   String × int -> string (single character).
     //   Highest precedence so a[i]+b parses as (a[i])+b.
+    //nějaký výraz, pak [, pak nějaký výraz, pak ] b[1]
     // --------------
     | expression '[' expression ']'                                   # CharAtExpr
 
@@ -125,7 +126,11 @@ STRING : '"' (~["\\] | '\\' .)* '"' ;
 
 IDENT  : [a-zA-Z][a-zA-Z0-9]* ;
 
-// Comments are bounded by two slashes and the end of the line.
+
 COMMENT : '//' ~[\r\n]* -> skip ;
 
 WS : [ \t\r\n]+ -> skip ;
+
+//* = nula nebo více (např. statement*)
+//+ = jeden nebo více (např. expression+)
+//? = nepovinné (např. ('else' statement)?)

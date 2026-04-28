@@ -2,10 +2,6 @@ from .types import PLCType
 
 
 class SymbolTable:
-    """Flat symbol table — the language has no nested function scopes and
-    declarations inside `{ ... }` blocks share the global scope per the spec
-    (variables must be declared before use, redeclaration is an error)."""
-
     def __init__(self):
         self._symbols: dict[str, PLCType] = {}
 

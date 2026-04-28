@@ -38,7 +38,8 @@ class PLCTypeChecker(PLCVisitor):
         for st in ctx.statement():
             self.visit(st)
         return None
-
+    
+#dvojita deklarace chyba
     def visitDeclStmt(self, ctx: PLCParser.DeclStmtContext):
         t = self.visit(ctx.type_())
         for ident in ctx.IDENT():
@@ -209,7 +210,7 @@ class PLCTypeChecker(PLCVisitor):
         return self._annotate(ctx, t)
 
     # --- expressions -----------------------------------------------------
-
+#kontrola bez deklarace typu
     def visitIdentExpr(self, ctx: PLCParser.IdentExprContext):
         name = ctx.IDENT().getText()
         if not self.symbols.is_declared(name):
@@ -313,9 +314,7 @@ class PLCTypeChecker(PLCVisitor):
         return self._annotate(ctx, PLCType.ERROR)
 
     def visitAssignExpr(self, ctx: PLCParser.AssignExprContext):
-        # The left side must be a (declared) variable. Per the spec, a side
-        # effect of `x = e` is storing `e` (after implicit cast) into `x`,
-        # and the expression itself takes the type of `x`.
+        # leva strana musi byt deklarovana (INT, STR nelze prevest)
         left = ctx.expression(0)
         right = ctx.expression(1)
         rt = self.visit(right)
@@ -344,7 +343,7 @@ class PLCTypeChecker(PLCVisitor):
         return self._annotate(ctx, lt)
 
     # ====================================================================
-    # EXTENSION: charAt — s[i]
+    # EXTENSION: charAt — s[i]ffor
     #   string × int -> string  (returns a 1-char string).
     # ====================================================================
     def visitCharAtExpr(self, ctx: PLCParser.CharAtExprContext):

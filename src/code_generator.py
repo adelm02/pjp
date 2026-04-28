@@ -6,19 +6,12 @@ from .types import PLCType, default_value
 
 
 class PLCCodeGenerator(PLCVisitor):
-    """Walks the (already type-checked) parse tree and emits the textual
-    stack-machine program defined in the assignment. Expects the type
-    checker has annotated every expression node with `plc_type` and recorded
-    `needs_itof[id(assign_ctx)]` for every assignment that needs an
-    implicit int -> float conversion."""
-
     def __init__(self, symbols: SymbolTable, needs_itof: dict[int, bool]):
         self.symbols = symbols
         self.needs_itof = needs_itof
         self._lines: list[str] = []
         self._next_label = 0
 
-    # --- emission helpers ------------------------------------------------
 
     def emit(self, line: str):
         self._lines.append(line)
@@ -60,6 +53,7 @@ class PLCCodeGenerator(PLCVisitor):
     def visitProgram(self, ctx: PLCParser.ProgramContext):
         for st in ctx.statement():
             self.visit(st)
+
 
     def visitDeclStmt(self, ctx: PLCParser.DeclStmtContext):
         t = self.symbols.type_of(ctx.IDENT(0).getText())
@@ -123,12 +117,12 @@ class PLCCodeGenerator(PLCVisitor):
     def visitForStmt(self, ctx: PLCParser.ForStmtContext):
         # init expression — value discarded
         self.visit(ctx.expression(0))
-        self.emit("pop")
+        self.emit("pop") #odtrsaneni ze zasobniku
         cond_label = self.new_label()
         end_label = self.new_label()
         self.emit(f"label {cond_label}")
         self.visit(ctx.expression(1))                    # cond
-        self.emit(f"fjmp {end_label}")
+        self.emit(f"fjmp {end_label}") #pokud false skoc na konec
         self.visit(ctx.statement())                      # body
         self.visit(ctx.expression(2))                    # step
         self.emit("pop")
@@ -295,7 +289,7 @@ class PLCCodeGenerator(PLCVisitor):
     #   stack: ..., string, int -> charAt -> ..., string(1)
     # ====================================================================
     def visitCharAtExpr(self, ctx: PLCParser.CharAtExprContext):
-        self.visit(ctx.expression(0))                    # string
+        self.visit(ctx.expression(0))                    # string - load b
         self.visit(ctx.expression(1))                    # index (int)
         self.emit("charAt")
 
@@ -306,13 +300,13 @@ class PLCCodeGenerator(PLCVisitor):
     # ====================================================================
     def visitTernaryExpr(self, ctx: PLCParser.TernaryExprContext):
         cond = ctx.expression(0)
-        a = ctx.expression(1)
+        a = ctx.expression(1) #true
         b = ctx.expression(2)
         target = ctx.plc_type
 
-        false_label = self.new_label()
-        end_label = self.new_label()
-        self.visit(cond)
+        false_label = self.new_label() #cislo pro false
+        end_label = self.new_label() #cislo pro konec
+        self.visit(cond) #vyhodnot podminku
         self.emit(f"fjmp {false_label}")
         self._emit_with_promotion(a, target)
         self.emit(f"jmp {end_label}")

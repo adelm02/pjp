@@ -2,9 +2,8 @@ from antlr4.error.ErrorListener import ErrorListener
 
 
 class CollectingErrorListener(ErrorListener):
-    """Collects every syntax error so we can report them all (the spec
-    requires that the compiler reports *all* syntax errors, not just the
-    first one)."""
+    """Collects every syntax error so we can report them all not just the
+    first one."""
 
     def __init__(self):
         super().__init__()

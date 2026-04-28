@@ -236,7 +236,7 @@ class PLCCodeGenerator(PLCVisitor):
 #
 # visitArrayDeclStmt — pre "int a[10];"
 #   emit("createarray a 10") — vytvor pole menom 'a' s 10 prvkami
-#   emit("save a")           — uloz pole do premennej a
+#   createarray uz ulozi pole priamo do vars — save a nie je potrebne
 #
 # visitArrayAccessExpr — pre "a[1]" (citanie)
 #   emit("load a")           — daj pole na zasobnik
@@ -248,6 +248,8 @@ class PLCCodeGenerator(PLCVisitor):
 #   emit("load a")           — daj pole na zasobnik
 #   visit(index)             — daj index (1) na zasobnik
 #   emit("savearray a")      — uloz hodnotu do pola na index
+#   potom znova load a / index / loadarray a — nechaj hodnotu na zasobniku
+#   (ExprStmt ju potom popne cez pop)
 #
 # new_label() — vrati unikatne cislo pre skoky v if/while
 # ===========================================================================

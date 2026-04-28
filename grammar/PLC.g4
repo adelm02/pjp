@@ -6,45 +6,13 @@ program
 
 statement
     : ';'                                                                    # EmptyStmt
+    | type IDENT '[' INT ']' ';'                                             # ArrayDeclStmt
     | type IDENT (',' IDENT)* ';'                                            # DeclStmt
     | 'read' IDENT (',' IDENT)* ';'                                          # ReadStmt
     | 'write' expression (',' expression)* ';'                               # WriteStmt
     | '{' statement* '}'                                                     # BlockStmt
     | 'if' '(' expression ')' statement ('else' statement)?                  # IfStmt
     | 'while' '(' expression ')' statement                                   # WhileStmt
-
-
-
-    // --------------
-    // EXTENSION: Pondělí
-    // fopen f "soubor.txt"
-    //   FILE / open / fwrite N
-    // --------------
-    | 'fopen' IDENT STRING ';'                                              # FopenStmt2
-    | 'fwrite' IDENT (',' expression)+ ';'                                  # FwriteStmt
-
-
-
-    // --------------
-    // EXTENSION: for cycle (Vašínek)
-    //   for (init; cond; step) statement
-    //   - init and step are expressions, cond must be bool.
-    //   - Behaves like the equivalent while loop.
-    // --------------
-    | 'for' '(' expression ';' expression ';' expression ')' statement       # ForStmt
-
-    // --------------
-    // EXTENSION: FILE / fopen / fappend
-    //  fopen f, "soubor.txt";
-    //   Two syntactic variants of fappend coexist; pick one in your project:
-    //     V1 (Běhálek):  fappend f, v1, v2, ... ;          // file is consumed
-    //     V2 (Vašínek):  f << v1 << v2 << ... ;            // file kept, then pop
-    // --------------
-    | 'FILE' IDENT (',' IDENT)* ';'                                          # FileDeclStmt
-    | 'fopen' IDENT ',' expression ';'                                       # FopenStmt
-    | 'fappend' IDENT (',' expression)+ ';'                                  # FappendV1Stmt
-    | IDENT ('<<' expression)+ ';'                                           # FappendV2Stmt
-
     | expression ';'                                                         # ExprStmt
     ;
 
@@ -55,19 +23,15 @@ type
     | 'string' # TypeString
     ;
 
-// Expression rules ordered from highest to lowest precedence so that ANTLR4
-// resolves the precedence climbing automatically. Right-associative ones
-// (assignment, ternary) are marked with <assoc=right>.
 expression
     : '(' expression ')'                                              # ParenExpr
 
     // --------------
-    // EXTENSION: charAt — postfix string indexing  s[i]
-    //   String × int -> string (single character).
-    //   Highest precedence so a[i]+b parses as (a[i])+b.
-    //nějaký výraz, pak [, pak nějaký výraz, pak ] b[1]
+    // EXTENSION: array — a[i]
+    //   IDENT [ index ] — pristup k prvku pola
+    //   prva cast je nazov pola, druha je index (int)
     // --------------
-    | expression '[' expression ']'                                   # CharAtExpr
+    | IDENT '[' expression ']'                                        # ArrayAccessExpr
 
     | op=('-' | '!') expression                                       # UnaryExpr
     | expression op=('*' | '/' | '%') expression                      # MulDivExpr
@@ -76,14 +40,6 @@ expression
     | expression op=('==' | '!=') expression                          # EqExpr
     | expression '&&' expression                                      # AndExpr
     | expression '||' expression                                      # OrExpr
-
-    // --------------
-    // EXTENSION: ternary operator  cond ? a : b
-    //   Right-associative; binds tighter than '=' but looser than '||'.
-    //   cond must be bool; a and b must share a numeric/common type.
-    // --------------
-    | <assoc=right> expression '?' expression ':' expression          # TernaryExpr
-
     | <assoc=right> expression '=' expression                         # AssignExpr
     | literal                                                         # LiteralExpr
     | IDENT                                                           # IdentExpr
@@ -100,7 +56,6 @@ literal
 // Lexer rules
 // --------------
 
-// Keywords (must come before IDENT)
 IF      : 'if' ;
 ELSE    : 'else' ;
 WHILE   : 'while' ;
@@ -111,26 +66,16 @@ FLOAT_T : 'float' ;
 BOOL_T  : 'bool' ;
 STR_T   : 'string' ;
 BOOL    : 'true' | 'false' ;
-FWRITE  : 'fwrite' ;
 
-// EXTENSION keywords (FILE / fopen / fappend / for)
-FILE_T  : 'FILE' ;
-FOPEN   : 'fopen' ;
-FAPPEND : 'fappend' ;
-FOR     : 'for' ;
-
-// Literals
 FLOAT  : [0-9]+ '.' [0-9]+ ;
 INT    : [0-9]+ ;
 STRING : '"' (~["\\] | '\\' .)* '"' ;
 
 IDENT  : [a-zA-Z][a-zA-Z0-9]* ;
 
-
 COMMENT : '//' ~[\r\n]* -> skip ;
+WS      : [ \t\r\n]+ -> skip ;
 
-WS : [ \t\r\n]+ -> skip ;
-
-//* = nula nebo více (např. statement*)
-//+ = jeden nebo více (např. expression+)
-//? = nepovinné (např. ('else' statement)?)
+// * = nula nebo více (např. statement*)
+// + = jeden nebo více (např. expression+)
+// ? = nepovinné (např. ('else' statement)?)

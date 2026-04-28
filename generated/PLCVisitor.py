@@ -19,6 +19,11 @@ class PLCVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PLCParser#ArrayDeclStmt.
+    def visitArrayDeclStmt(self, ctx:PLCParser.ArrayDeclStmtContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PLCParser#DeclStmt.
     def visitDeclStmt(self, ctx:PLCParser.DeclStmtContext):
         return self.visitChildren(ctx)
@@ -46,41 +51,6 @@ class PLCVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by PLCParser#WhileStmt.
     def visitWhileStmt(self, ctx:PLCParser.WhileStmtContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#FopenStmt2.
-    def visitFopenStmt2(self, ctx:PLCParser.FopenStmt2Context):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#FwriteStmt.
-    def visitFwriteStmt(self, ctx:PLCParser.FwriteStmtContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#ForStmt.
-    def visitForStmt(self, ctx:PLCParser.ForStmtContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#FileDeclStmt.
-    def visitFileDeclStmt(self, ctx:PLCParser.FileDeclStmtContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#FopenStmt.
-    def visitFopenStmt(self, ctx:PLCParser.FopenStmtContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#FappendV1Stmt.
-    def visitFappendV1Stmt(self, ctx:PLCParser.FappendV1StmtContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#FappendV2Stmt.
-    def visitFappendV2Stmt(self, ctx:PLCParser.FappendV2StmtContext):
         return self.visitChildren(ctx)
 
 
@@ -119,33 +89,18 @@ class PLCVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by PLCParser#MulDivExpr.
+    def visitMulDivExpr(self, ctx:PLCParser.MulDivExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by PLCParser#RelExpr.
     def visitRelExpr(self, ctx:PLCParser.RelExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PLCParser#UnaryExpr.
-    def visitUnaryExpr(self, ctx:PLCParser.UnaryExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#OrExpr.
-    def visitOrExpr(self, ctx:PLCParser.OrExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#AssignExpr.
-    def visitAssignExpr(self, ctx:PLCParser.AssignExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#CharAtExpr.
-    def visitCharAtExpr(self, ctx:PLCParser.CharAtExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by PLCParser#MulDivExpr.
-    def visitMulDivExpr(self, ctx:PLCParser.MulDivExprContext):
+    # Visit a parse tree produced by PLCParser#ArrayAccessExpr.
+    def visitArrayAccessExpr(self, ctx:PLCParser.ArrayAccessExprContext):
         return self.visitChildren(ctx)
 
 
@@ -169,8 +124,18 @@ class PLCVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by PLCParser#TernaryExpr.
-    def visitTernaryExpr(self, ctx:PLCParser.TernaryExprContext):
+    # Visit a parse tree produced by PLCParser#UnaryExpr.
+    def visitUnaryExpr(self, ctx:PLCParser.UnaryExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PLCParser#OrExpr.
+    def visitOrExpr(self, ctx:PLCParser.OrExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by PLCParser#AssignExpr.
+    def visitAssignExpr(self, ctx:PLCParser.AssignExprContext):
         return self.visitChildren(ctx)
 
 

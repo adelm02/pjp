@@ -12,12 +12,12 @@ class PLCCodeGenerator(PLCVisitor):
         self._lines: list[str] = []
         self._next_label = 0
 
-
     def emit(self, line: str):
+        # Prida jednu instrukciu do zoznamu — ako napisat krok do receptu
         self._lines.append(line)
 
-#skok, while, for
     def new_label(self) -> int:
+        # Vrati unikatne cislo pre label (pouziva sa pre if/while skoky)
         n = self._next_label
         self._next_label += 1
         return n
@@ -25,23 +25,16 @@ class PLCCodeGenerator(PLCVisitor):
     def output(self) -> str:
         return "\n".join(self._lines) + ("\n" if self._lines else "")
 
-    # --- entry -----------------------------------------------------------
-
     def generate(self, tree):
         self.visit(tree)
         return self.output()
 
     def _emit_push_default(self, t: PLCType):
         v = default_value(t)
-        if t == PLCType.INT:
-            self.emit(f"push I {v}")
-        elif t == PLCType.FLOAT:
-            self.emit(f"push F {v}")
-        elif t == PLCType.BOOL:
-            self.emit(f"push B {'true' if v else 'false'}")
-        elif t == PLCType.STRING:
-            self.emit(f'push S ""')
-        # FILE has no default initialization — only `fopen` produces a value.
+        if t == PLCType.INT:    self.emit(f"push I {v}")
+        elif t == PLCType.FLOAT:  self.emit(f"push F {v}")
+        elif t == PLCType.BOOL:   self.emit(f"push B {'true' if v else 'false'}")
+        elif t == PLCType.STRING: self.emit(f'push S ""')
 
     def _emit_with_promotion(self, expr_ctx, target: PLCType):
         self.visit(expr_ctx)
@@ -54,6 +47,14 @@ class PLCCodeGenerator(PLCVisitor):
         for st in ctx.statement():
             self.visit(st)
 
+    # EXTENSION: array declaration — int a[10];
+    # Generuje: createarray a 10
+    # createarray uz ulozi pole priamo do vars — nepotrebujeme save
+    def visitArrayDeclStmt(self, ctx):
+        name = ctx.IDENT().getText()   # nazov pola napr. "a"
+        size = ctx.INT().getText()     # velkost pola napr. "10"
+        self.emit(f"createarray {name} {size}")  # vytvor pole a uloz do vars
+        return None
 
     def visitDeclStmt(self, ctx: PLCParser.DeclStmtContext):
         t = self.symbols.type_of(ctx.IDENT(0).getText())
@@ -77,21 +78,20 @@ class PLCCodeGenerator(PLCVisitor):
             self.emit(f"save {name}")
 
     def visitWriteStmt(self, ctx: PLCParser.WriteStmtContext):
-        # Push every value, then a single `print n` consumes them all.
         for e in ctx.expression():
             self.visit(e)
         self.emit(f"print {len(ctx.expression())}")
 
     def visitIfStmt(self, ctx: PLCParser.IfStmtContext):
-        self.visit(ctx.expression())  # condition (bool) on stack
+        self.visit(ctx.expression())
         else_label = self.new_label()
         end_label = self.new_label()
         self.emit(f"fjmp {else_label}")
-        self.visit(ctx.statement(0))  # then branch
+        self.visit(ctx.statement(0))
         self.emit(f"jmp {end_label}")
         self.emit(f"label {else_label}")
         if ctx.statement(1) is not None:
-            self.visit(ctx.statement(1))  # else branch
+            self.visit(ctx.statement(1))
         self.emit(f"label {end_label}")
 
     def visitWhileStmt(self, ctx: PLCParser.WhileStmtContext):
@@ -106,81 +106,6 @@ class PLCCodeGenerator(PLCVisitor):
 
     def visitExprStmt(self, ctx: PLCParser.ExprStmtContext):
         self.visit(ctx.expression())
-        # The expression's value is unused; discard it.
-        self.emit("pop")
-
-    # ====================================================================
-    # EXTENSION: for cycle (Vašínek)
-    #   Lowered to the equivalent while:
-    #     init; while (cond) { body; step; }
-    # ====================================================================
-    def visitForStmt(self, ctx: PLCParser.ForStmtContext):
-        # init expression — value discarded
-        self.visit(ctx.expression(0))
-        self.emit("pop") #odtrsaneni ze zasobniku
-        cond_label = self.new_label()
-        end_label = self.new_label()
-        self.emit(f"label {cond_label}")
-        self.visit(ctx.expression(1))                    # cond
-        self.emit(f"fjmp {end_label}") #pokud false skoc na konec
-        self.visit(ctx.statement())                      # body
-        self.visit(ctx.expression(2))                    # step
-        self.emit("pop")
-        self.emit(f"jmp {cond_label}")
-        self.emit(f"label {end_label}")
-
-    # ====================================================================
-    # EXTENSION: FILE / fopen / fappend
-    #   Two variants of fappend coexist (see grammar header).
-    # ====================================================================
-    def visitFileDeclStmt(self, ctx: PLCParser.FileDeclStmtContext):
-        # FILE handles aren't initialized — they only become valid after
-        # fopen. We emit nothing for the declaration itself.
-        return None
-
-    def visitFopenStmt(self, ctx: PLCParser.FopenStmtContext):
-        # Convention from the .md notes:  push S <path>; fopen; save f
-        self.visit(ctx.expression())                     # path on stack
-        self.emit("fopen")
-        self.emit(f"save {ctx.IDENT().getText()}")
-
-#fopen pondeli
-    def visitFopenStmt2(self, ctx):
-    # push S "soubor.txt"; open; save f
-        path = ctx.STRING().getText()      # získej "soubor.txt" přímo z gramatiky
-        self.emit(f"push S {path}")        # dej cestu na zásobník
-        self.emit("open")                  # instrukce open (ne fopen!)
-        self.emit(f"save {ctx.IDENT().getText()}")  # ulož handle do f
-
-    def visitFwriteStmt(self, ctx):
-        # load f; push v1; push v2; ...; fwrite N
-        name = ctx.IDENT().getText()       # získej "f"
-        self.emit(f"load {name}")          # dej f na zásobník
-        for e in ctx.expression():         # pro každý výraz ("abc", 1+2...)
-            self.visit(e)                  # vygeneruj instrukce pro výraz
-        self.emit(f"fwrite {len(ctx.expression())}")  # fwrite N kde N = počet výrazů
-#--------
-
-    def visitFappendV1Stmt(self, ctx: PLCParser.FappendV1StmtContext):
-        # `fappend f, v1, v2, ... ;`
-        # -> load f; push v1; push v2; ...; fappend N
-        # where N is the total number of values pushed (file handle + values).
-        name = ctx.IDENT().getText()
-        self.emit(f"load {name}")
-        for e in ctx.expression():
-            self.visit(e)
-        self.emit(f"fappend {1 + len(ctx.expression())}")
-
-    def visitFappendV2Stmt(self, ctx: PLCParser.FappendV2StmtContext):
-        # `f << v1 << v2 << ... ;`
-        # -> load f; (push v1; fappend; push v2; fappend; ...); pop
-        # `fappend` (no count) writes 1 value and leaves the file handle on
-        # the stack so the next `<<` can chain.
-        name = ctx.IDENT().getText()
-        self.emit(f"load {name}")
-        for e in ctx.expression():
-            self.visit(e)
-            self.emit("fappend")
         self.emit("pop")
 
     # --- expressions -----------------------------------------------------
@@ -191,22 +116,21 @@ class PLCCodeGenerator(PLCVisitor):
     def visitLiteralExpr(self, ctx: PLCParser.LiteralExprContext):
         self.visit(ctx.literal())
 
-    def visitIntLit(self, ctx):
-        self.emit(f"push I {ctx.getText()}")
-
-    def visitFloatLit(self, ctx):
-        self.emit(f"push F {ctx.getText()}")
-
-    def visitBoolLit(self, ctx):
-        self.emit(f"push B {ctx.getText()}")
-
-    def visitStringLit(self, ctx):
-        # Keep the surrounding quotes; the spec's instruction set uses
-        # `push S "..."` form already.
-        self.emit(f"push S {ctx.getText()}")
+    def visitIntLit(self, ctx):    self.emit(f"push I {ctx.getText()}")
+    def visitFloatLit(self, ctx):  self.emit(f"push F {ctx.getText()}")
+    def visitBoolLit(self, ctx):   self.emit(f"push B {ctx.getText()}")
+    def visitStringLit(self, ctx): self.emit(f"push S {ctx.getText()}")
 
     def visitIdentExpr(self, ctx: PLCParser.IdentExprContext):
         self.emit(f"load {ctx.IDENT().getText()}")
+
+    # EXTENSION: array access — a[i]
+    # Generuje: load a / push index / loadarray a
+    def visitArrayAccessExpr(self, ctx):
+        name = ctx.IDENT().getText()
+        self.emit(f"load {name}")        # nacitaj pole na zasobnik
+        self.visit(ctx.expression())     # nacitaj index na zasobnik
+        self.emit(f"loadarray {name}")   # vezmi pole a index, vrat hodnotu
 
     def visitUnaryExpr(self, ctx: PLCParser.UnaryExprContext):
         op = ctx.op.text
@@ -252,8 +176,7 @@ class PLCCodeGenerator(PLCVisitor):
         op = ctx.op.text
         l, r = ctx.expression(0), ctx.expression(1)
         if l.plc_type == PLCType.STRING:
-            self.visit(l)
-            self.visit(r)
+            self.visit(l); self.visit(r)
             self.emit("eq S")
         else:
             target = PLCType.FLOAT if PLCType.FLOAT in (l.plc_type, r.plc_type) else PLCType.INT
@@ -274,42 +197,57 @@ class PLCCodeGenerator(PLCVisitor):
         self.emit("or")
 
     def visitAssignExpr(self, ctx: PLCParser.AssignExprContext):
-        # Evaluate RHS, possibly widen, store into LHS variable, and leave
-        # the value on the stack (so `=` can be used inside larger exprs).
+        left = ctx.expression(0)
         right = ctx.expression(1)
+
+        # EXTENSION: array assign — a[i] = value
+        # Generuje: hodnota / load a / index / savearray a / load a / index / loadarray a
+        # Na konci musime nechat hodnotu na zasobniku (ExprStmt ju potom popne)
+        if isinstance(left, PLCParser.ArrayAccessExprContext):
+            name = left.IDENT().getText()
+            self.visit(right)                          # hodnota na zasobnik
+            if self.needs_itof.get(id(ctx), False):
+                self.emit("itof")
+            self.emit(f"load {name}")                  # nacitaj pole
+            self.visit(left.expression())              # index na zasobnik
+            self.emit(f"savearray {name}")             # uloz do pola
+            # Nechaj hodnotu na zasobniku — rovnako ako normalne priradenie
+            self.emit(f"load {name}")                  # nacitaj pole
+            self.visit(left.expression())              # index na zasobnik
+            self.emit(f"loadarray {name}")             # nacitaj hodnotu spat
+            return
+
+        # Normalne priradenie
         self.visit(right)
         if self.needs_itof.get(id(ctx), False):
             self.emit("itof")
-        name = ctx.expression(0).IDENT().getText()
+        name = left.IDENT().getText()
         self.emit(f"save {name}")
         self.emit(f"load {name}")
 
-    # ====================================================================
-    # EXTENSION: charAt — postfix s[i]
-    #   stack: ..., string, int -> charAt -> ..., string(1)
-    # ====================================================================
-    def visitCharAtExpr(self, ctx: PLCParser.CharAtExprContext):
-        self.visit(ctx.expression(0))                    # string - load b
-        self.visit(ctx.expression(1))                    # index (int)
-        self.emit("charAt")
 
-    # ====================================================================
-    # EXTENSION: ternary operator  cond ? a : b
-    #   eval cond; fjmp Lf; eval a; jmp Lend; label Lf; eval b; label Lend;
-    #   With int->float promotion if branches mix int and float.
-    # ====================================================================
-    def visitTernaryExpr(self, ctx: PLCParser.TernaryExprContext):
-        cond = ctx.expression(0)
-        a = ctx.expression(1) #true
-        b = ctx.expression(2)
-        target = ctx.plc_type
-
-        false_label = self.new_label() #cislo pro false
-        end_label = self.new_label() #cislo pro konec
-        self.visit(cond) #vyhodnot podminku
-        self.emit(f"fjmp {false_label}")
-        self._emit_with_promotion(a, target)
-        self.emit(f"jmp {end_label}")
-        self.emit(f"label {false_label}")
-        self._emit_with_promotion(b, target)
-        self.emit(f"label {end_label}")
+# ===========================================================================
+# VYSVETLENIE PRE OBHAJOBU
+# ===========================================================================
+# Co robi CodeGenerator?
+#   Prechádza strom (uz skontrolovany TypeCheckerom) a generuje instrukcie.
+#   emit() prida jednu instrukciu — ako napisat krok receptu.
+#   VM potom instrukcie vykona.
+#
+# visitArrayDeclStmt — pre "int a[10];"
+#   emit("createarray a 10") — vytvor pole menom 'a' s 10 prvkami
+#   emit("save a")           — uloz pole do premennej a
+#
+# visitArrayAccessExpr — pre "a[1]" (citanie)
+#   emit("load a")           — daj pole na zasobnik
+#   visit(index)             — daj index (1) na zasobnik
+#   emit("loadarray a")      — vezmi pole a index, vrat hodnotu
+#
+# visitAssignExpr pre pole — pre "a[1] = 5"
+#   visit(right)             — daj hodnotu (5) na zasobnik
+#   emit("load a")           — daj pole na zasobnik
+#   visit(index)             — daj index (1) na zasobnik
+#   emit("savearray a")      — uloz hodnotu do pola na index
+#
+# new_label() — vrati unikatne cislo pre skoky v if/while
+# ===========================================================================
